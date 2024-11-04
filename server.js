@@ -7,17 +7,41 @@ const app = express();
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN
-      ? process.env.CORS_ORIGIN.split(",")
-      : ["http://localhost:8100"],
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    origin: (origin, callback) => {
+      const allowedOrigins = process.env.CORS_ORIGIN
+        ? process.env.CORS_ORIGIN.split(",")
+        : [
+            "http://localhost:8100",
+            "capacitor://localhost",
+            "ionic://localhost",
+            "http://localhost",
+            "http://localhost:8080",
+            "*",
+          ];
+
+      if (!origin) return callback(null, true);
+
+      if (
+        allowedOrigins.indexOf(origin) !== -1 ||
+        allowedOrigins.includes("*")
+      ) {
+        callback(null, true);
+      } else {
+        console.log("Origin blocked by CORS:", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+    credentials: true,
   })
 );
 
 app.use(express.json());
 
 const tx = new WebpayPlus.Transaction();
+
+app.options("*", cors());
 
 app.post("/api/pago/init", async (req, res) => {
   try {
@@ -27,11 +51,14 @@ app.post("/api/pago/init", async (req, res) => {
       throw new Error("El monto debe ser un número entero");
     }
 
-    console.log("Estos son los datos que me devuelve la transacción:", {
+    console.log("Datos de la transacción:", {
       amount,
       buyOrder,
       returnUrl,
       sessionId,
+      clientIP: req.ip,
+      origin: req.get("origin"),
+      userAgent: req.get("user-agent"),
     });
 
     const response = await tx.create(buyOrder, sessionId, amount, returnUrl);
@@ -55,10 +82,18 @@ app.post("/api/pago/init", async (req, res) => {
 });
 
 app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok" });
+  res.status(200).json({
+    status: "ok",
+    environment: process.env.NODE_ENV || "development",
+    corsOrigins: process.env.CORS_ORIGIN || "default origins",
+  });
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
+  console.log(`Ambiente: ${process.env.NODE_ENV || "development"}`);
+  console.log(
+    `CORS Origins permitidos: ${process.env.CORS_ORIGIN || "default origins"}`
+  );
 });
