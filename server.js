@@ -86,10 +86,6 @@ app.post("/api/pago/init", async (req, res) => {
 app.get("/api/pago/redirect", (req, res) => {
   const token_ws = req.query.token_ws;
 
-  // Construir la URL de deep link
-  const deepLinkUrl = `com.scanbuy.app://payment/confirmation?token_ws=${token_ws}`;
-
-  // Página HTML con redirección automática
   const html = `
     <!DOCTYPE html>
     <html>
@@ -99,13 +95,19 @@ app.get("/api/pago/redirect", (req, res) => {
       <title>Redirigiendo...</title>
       <script>
         function openApp() {
-          // Intentar abrir la app
-          window.location.href = "${deepLinkUrl}";
+          // Intentar abrir la app con el deeplink
+          window.location.href = "com.scanbuy.app://payment/confirmation?token_ws=${token_ws}";
           
-          // Si después de 1 segundo no se abrió la app, redirigir a la web
+          // Fallback después de 2 segundos si el deeplink no funciona
           setTimeout(function() {
-            window.location.href = "http://localhost:8100/payment/confirmation?token_ws=${token_ws}";
-          }, 1000);
+            // Si estamos en dispositivo móvil pero el deeplink falló
+            if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+              window.location.href = "https://webpay-scanbuy.onrender.com/payment/confirmation?token_ws=${token_ws}";
+            } else {
+              // Si estamos en desktop
+              window.location.href = "http://localhost:8100/payment/confirmation?token_ws=${token_ws}";
+            }
+          }, 2000);
         }
       </script>
     </head>
