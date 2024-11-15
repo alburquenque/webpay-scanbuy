@@ -83,6 +83,41 @@ app.post("/api/pago/init", async (req, res) => {
   }
 });
 
+app.get("/api/pago/redirect", (req, res) => {
+  const token_ws = req.query.token_ws;
+
+  // Construir la URL de deep link
+  const deepLinkUrl = `com.scanbuy.app://payment/confirmation?token_ws=${token_ws}`;
+
+  // Página HTML con redirección automática
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Redirigiendo...</title>
+      <script>
+        function openApp() {
+          // Intentar abrir la app
+          window.location.href = "${deepLinkUrl}";
+          
+          // Si después de 1 segundo no se abrió la app, redirigir a la web
+          setTimeout(function() {
+            window.location.href = "http://localhost:8100/payment/confirmation?token_ws=${token_ws}";
+          }, 1000);
+        }
+      </script>
+    </head>
+    <body onload="openApp()">
+      <p>Redirigiendo a la aplicación...</p>
+    </body>
+    </html>
+  `;
+
+  res.send(html);
+});
+
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "ok",
