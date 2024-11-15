@@ -16,14 +16,16 @@ app.use(
             "ionic://localhost",
             "http://localhost",
             "http://localhost:8080",
+            "com.scanbuy.app",
+            "com.scanbuy.app://",
             "*",
           ];
 
       if (!origin) return callback(null, true);
-
       if (
         allowedOrigins.indexOf(origin) !== -1 ||
-        allowedOrigins.includes("*")
+        allowedOrigins.includes("*") ||
+        origin.startsWith("com.scanbuy.app")
       ) {
         callback(null, true);
       } else {
