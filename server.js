@@ -83,7 +83,7 @@ app.post("/api/pago/init", async (req, res) => {
   }
 });
 
-app.get("/api/pago/redirect", (req, res) => {
+app.get("/api/pago/redirect", async (req, res) => {
   const token_ws = req.query.token_ws;
   const userAgent = req.get("user-agent");
   const isMobile = /iPhone|iPad|iPod|Android/i.test(userAgent);
@@ -97,15 +97,39 @@ app.get("/api/pago/redirect", (req, res) => {
     return res.redirect("com.scanbuy.app://");
   }
 
-  if (isMobile) {
-    console.log("Redirigiendo a la app móvil con token...");
+  try {
+    // Confirmar el estado del pago con WebPay
+    const response = await tx.commit(token_ws);
+    console.log("Respuesta de WebPay:", response);
+
+    if (response.status === "AUTHORIZED") {
+      console.log("Pago autorizado, redirigiendo...");
+
+      if (isMobile) {
+        console.log("Redirigiendo a la app móvil con token...");
+        return res.redirect(
+          `com.scanbuy.app://payment/confirmation?token_ws=${token_ws}`
+        );
+      } else {
+        console.log("Redirigiendo al navegador...");
+        return res.redirect(
+          `http://localhost:8100/payment/confirmation?token_ws=${token_ws}`
+        );
+      }
+    } else {
+      console.error("Pago no autorizado o rechazado:", response.status);
+      return res.redirect(
+        isMobile
+          ? `com.scanbuy.app://payment/failed`
+          : `http://localhost:8100/payment/failed`
+      );
+    }
+  } catch (error) {
+    console.error("Error al confirmar el token con WebPay:", error.message);
     return res.redirect(
-      `com.scanbuy.app://payment/confirmation?token_ws=${token_ws}`
-    );
-  } else {
-    console.log("Redirigiendo al navegador...");
-    return res.redirect(
-      `http://localhost:8100/payment/confirmation?token_ws=${token_ws}`
+      isMobile
+        ? `com.scanbuy.app://payment/error`
+        : `http://localhost:8100/payment/error`
     );
   }
 });
