@@ -85,19 +85,25 @@ app.post("/api/pago/init", async (req, res) => {
 
 app.get("/api/pago/redirect", (req, res) => {
   const token_ws = req.query.token_ws;
-
-  if (!token_ws) {
-    return res.redirect("com.scanbuy.app://");
-  }
-
   const userAgent = req.get("user-agent");
   const isMobile = /iPhone|iPad|iPod|Android/i.test(userAgent);
 
+  console.log("Redirect recibido. Token:", token_ws);
+  console.log("User-Agent:", userAgent);
+  console.log("Es móvil:", isMobile);
+
+  if (!token_ws) {
+    console.error("Token no recibido, redirigiendo al esquema base...");
+    return res.redirect("com.scanbuy.app://");
+  }
+
   if (isMobile) {
+    console.log("Redirigiendo a la app móvil con token...");
     return res.redirect(
       `com.scanbuy.app://payment/confirmation?token_ws=${token_ws}`
     );
   } else {
+    console.log("Redirigiendo al navegador...");
     return res.redirect(
       `http://localhost:8100/payment/confirmation?token_ws=${token_ws}`
     );
