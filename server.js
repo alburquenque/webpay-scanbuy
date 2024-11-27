@@ -83,6 +83,55 @@ app.post("/api/pago/init", async (req, res) => {
   }
 });
 
+app.post("/api/pago/confirmar", async (req, res) => {
+  try {
+    const { token_ws } = req.body;
+
+    if (!token_ws) {
+      return res.status(400).json({
+        error: "Token de transacción no proporcionado",
+        status: "error",
+      });
+    }
+
+    const response = await WebpayPlus.Transaction.status(token_ws);
+
+    let purchaseStatus = "error";
+    let message = "Transacción fallida";
+
+    switch (response.status) {
+      case "AUTHORIZED":
+        purchaseStatus = "success";
+        message = "Transacción autorizada";
+        break;
+      case "FAILED":
+        purchaseStatus = "error";
+        message = "Transacción rechazada";
+        break;
+      case "CANCELED":
+        purchaseStatus = "cancelled";
+        message = "Transacción cancelada";
+        break;
+      default:
+        purchaseStatus = "error";
+        message = "Estado de transacción desconocido";
+    }
+
+    res.json({
+      status: purchaseStatus,
+      message: message,
+      details: response,
+    });
+  } catch (error) {
+    console.error("Error al verificar estado de transacción:", error);
+    res.status(500).json({
+      error: "Error al verificar estado de transacción",
+      details: error.message,
+      status: "error",
+    });
+  }
+});
+
 app.get("/api/pago/redirect", (req, res) => {
   const token_ws = req.query.token_ws;
   const userAgent = req.get("user-agent");
