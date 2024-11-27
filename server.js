@@ -94,27 +94,20 @@ app.post("/api/pago/confirmar", async (req, res) => {
       });
     }
 
-    const response = await WebpayPlus.Transaction.status(token_ws);
+    const response = await tx.commit(token_ws);
 
     let purchaseStatus = "error";
     let message = "Transacción fallida";
 
-    switch (response.status) {
-      case "AUTHORIZED":
-        purchaseStatus = "success";
-        message = "Transacción autorizada";
-        break;
-      case "FAILED":
-        purchaseStatus = "error";
-        message = "Transacción rechazada";
-        break;
-      case "CANCELED":
-        purchaseStatus = "cancelled";
-        message = "Transacción cancelada";
-        break;
-      default:
-        purchaseStatus = "error";
-        message = "Estado de transacción desconocido";
+    if (response.status === "AUTHORIZED") {
+      purchaseStatus = "success";
+      message = "Transacción autorizada";
+    } else if (response.status === "FAILED") {
+      purchaseStatus = "error";
+      message = "Transacción rechazada";
+    } else if (response.status === "CANCELED") {
+      purchaseStatus = "cancelled";
+      message = "Transacción cancelada";
     }
 
     res.json({
